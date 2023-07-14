@@ -1,7 +1,7 @@
 # DEMORI
 A tool made to play OMORI after it has been de-listed from Xbox (on PC)
 
-https://github.com/cemrk2/DEMORI/assets/130415487/64838218-8907-4899-bccf-5c2d25d92a99
+https://github.com/cemrk2/DEMORI/assets/130415487/db45435a-c9af-4e3e-8448-e45f8bc86d33
 
 ### Dumping the game
 
