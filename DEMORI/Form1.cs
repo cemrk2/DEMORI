@@ -108,7 +108,7 @@ namespace DEMORI
             return list;
         }
 
-        private bool validateChowdren()
+        private bool ValidateChowdren()
         {
             var requiredFiles = new[]
             {
@@ -121,13 +121,18 @@ namespace DEMORI
                 "MicrosoftGame.Config",
                 "resources.pri"
             };
+            
+            var result = true;
 
             foreach (var _file in requiredFiles)
             {
                 var file = Path.Combine(_chowdrenDir, _file);
                 if (!File.Exists(file))
                 {
-                    richTextBox1.Text += $"{_file} does not exist";
+                    richTextBox1.SelectionColor = Color.Red;
+                    richTextBox1.AppendText($"{_file} does not exist\n");
+                    richTextBox1.SelectionColor = richTextBox1.ForeColor;
+                    result = false;
                 }
                 else if (!file.EndsWith("Chowdren.exe"))
                 {
@@ -136,11 +141,11 @@ namespace DEMORI
                     richTextBox1.SelectionColor = match ? Color.Lime : Color.Red;
                     richTextBox1.AppendText($"{(match ? "Pass" : "FAIL")} {_file} {Sha256(file)}\n");
                     richTextBox1.SelectionColor = richTextBox1.ForeColor;
-                    if (!match) return false;
+                    if (!match) result = false;
                 }
             }
 
-            return true;
+            return result;
         }
 
         private void browseBtn_Click(object sender, EventArgs e)
@@ -153,7 +158,7 @@ namespace DEMORI
             locationLbl.Text = $@"Xbox Game Location: {dialog.SelectedPath}";
             if (File.Exists(Path.Combine(_chowdrenDir, "Chowdren.exe")))
             {
-                _chowdrenDirValid = validateChowdren();
+                _chowdrenDirValid = ValidateChowdren();
                 locationLbl.ForeColor = _chowdrenDirValid ? Color.Lime : Color.Red;
             }
         }
