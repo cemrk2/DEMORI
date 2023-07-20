@@ -16,6 +16,7 @@ https://github.com/cemrk2/DEMORI/assets/130415487/db45435a-c9af-4e3e-8448-e45f8b
 This tool doesn't "decrypt" the game's exe that's in the XboxGames folder
 since the game's exe is encrypted on disk and the only way to dump it
 is to launch it first then to inject a dll into the game **while its running** and copy all the files out.
+The original dump of the game was made using Wunkolo's UWPDumper, and has been uploaded to VirusTotal 3 months ago
 
 Instead this tool has a bundle of the game's 
 original exe encrypted with a few of the game's files

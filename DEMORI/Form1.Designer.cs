@@ -81,7 +81,7 @@
             // outputBtn
             // 
             this.outputBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.outputBtn.Location = new System.Drawing.Point(200, 62);
+            this.outputBtn.Location = new System.Drawing.Point(204, 62);
             this.outputBtn.Name = "outputBtn";
             this.outputBtn.Size = new System.Drawing.Size(182, 42);
             this.outputBtn.TabIndex = 5;
@@ -94,7 +94,7 @@
             this.decryptBtn.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(20)))), ((int)(((byte)(20)))));
             this.decryptBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.decryptBtn.ForeColor = System.Drawing.Color.White;
-            this.decryptBtn.Location = new System.Drawing.Point(388, 62);
+            this.decryptBtn.Location = new System.Drawing.Point(394, 62);
             this.decryptBtn.Name = "decryptBtn";
             this.decryptBtn.Size = new System.Drawing.Size(182, 42);
             this.decryptBtn.TabIndex = 6;
