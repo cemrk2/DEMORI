@@ -23,16 +23,7 @@ namespace DEMORI
 
         private static readonly Dictionary<string, string> Checksum = new Dictionary<string, string>()
         {
-            {"appxmanifest.xml", "5F428AF57291C41CDC0BB283B0DA947E85B9F1268A85A2C647B0D1B0DF5180D0"},
-            {"Assets.dat", "42A38DF3F6721EA688D9F00C13F749CEC76596EFA1772236EE9E3A5E7A35C13E"},
-            {"atoms.dat", "ACFD2489EFE323194EFF3C2A73AE88C0E3727C45DA9706A5454846C58AB86869"},
-            {"full.bin", "F5221BE198DB421FE0F89F47961D6924868CE64873989A46BBB77D3A478A3B8C"},
-            {"layout_00000000-0000-0000-0000-000000000001.xml", "90593B02C5879838B0AED1B7A02FE187D986D28A749458CB16F6131DC57D9C4D"},
-            {"MicrosoftGame.Config", "DFAB4D5758CAB5FB97D295B172CB125C2403BAD6C31CD9A122430E5196930705"},
-            {"resources.pri", "74F64242242A19704A667921AE6E2C3D8DE1DE0EA914036F6C3AC366EA77BA15"},
-            
-            
-            {"Encrypted", "F45E23B04428FBBEBD4B08D475C5F58024BF2184B7205151F4895EC1D7F1357A"},
+            {"Encrypted", "891F21421D9C66BCA158D6F2A758AEAC896066373F840D016032670DC0195D95"},
             {"Decrypted", "31F1260026CF671DB729059E896D2E7D9C801D240CDF2FA13E2582930E086562"}
         };
         
@@ -41,9 +32,13 @@ namespace DEMORI
             "Assets.dat",
             "atoms.dat",
             "full.bin",
-            "layout_00000000-0000-0000-0000-000000000001.xml",
             "MicrosoftGame.Config",
-            "resources.pri"
+            "resources.pri",
+            "GraphicsLogo.png",
+            "LargeLogo.png",
+            "SmallLogo.png",
+            "SplashScreen.png",
+            "StoreLogo.png"
         };
 
         public Form1()
@@ -62,38 +57,9 @@ namespace DEMORI
 
             encryptedBytes = File.ReadAllBytes("Chowdren.bin");
 
-            if (Sha256(encryptedBytes) == Checksum["Encrypted"]) return;
+            if (Decryption.Sha256(encryptedBytes) == Checksum["Encrypted"]) return;
             MessageBox.Show("Checksum doesn't match for Chowdren.bin", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Environment.Exit(-1);
-        }
-
-        private static string BytesToHex(byte[] bytes)
-        {
-            var sb = new StringBuilder();
-
-            foreach (var t in bytes)
-            {
-                sb.Append(t.ToString("X2"));
-            }
-
-            return sb.ToString();
-        }
-
-        private static string Sha256(string filePath)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-                using (var fs = File.OpenRead(filePath))
-                    return BytesToHex(sha256.ComputeHash(fs));
-            }
-        }
-
-        private static string Sha256(byte[] data)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-                return BytesToHex(sha256.ComputeHash(data));
-            }
         }
 
         private static List<string> Search(string path)
@@ -110,42 +76,28 @@ namespace DEMORI
 
         private bool ValidateChowdren()
         {
-            var requiredFiles = new[]
-            {
-                "Chowdren.exe",
-                "appxmanifest.xml",
-                "Assets.dat",
-                "atoms.dat",
-                "full.bin",
-                "layout_00000000-0000-0000-0000-000000000001.xml",
-                "MicrosoftGame.Config",
-                "resources.pri"
-            };
-            
-            var result = true;
+            var result = Decryption.Validate(_chowdrenDir);
+            var success = true;
 
-            foreach (var _file in requiredFiles)
+            foreach (var pair in result.Item1)
             {
-                var file = Path.Combine(_chowdrenDir, _file);
-                if (!File.Exists(file))
-                {
-                    richTextBox1.SelectionColor = Color.Red;
-                    richTextBox1.AppendText($"{_file} does not exist\n");
-                    richTextBox1.SelectionColor = richTextBox1.ForeColor;
-                    result = false;
-                }
-                else if (!file.EndsWith("Chowdren.exe"))
-                {
-                    var hash = Sha256(file);
-                    var match = Checksum[_file] == hash;
-                    richTextBox1.SelectionColor = match ? Color.Lime : Color.Red;
-                    richTextBox1.AppendText($"{(match ? "Pass" : "FAIL")} {_file} {Sha256(file)}\n");
-                    richTextBox1.SelectionColor = richTextBox1.ForeColor;
-                    if (!match) result = false;
-                }
+                var fn = pair.Key;
+                var fSuccess = pair.Value == "Pass";
+                
+                richTextBox1.SelectionColor = fSuccess ? Color.Lime : Color.Red;
+                richTextBox1.AppendText($"{(fSuccess ? "Pass" : "FAIL")} {fn} {pair.Value}\n");
+                richTextBox1.SelectionColor = richTextBox1.ForeColor;
+
+                if (!fSuccess) success = false;
             }
 
-            return result;
+            if (result.Item2 == null || result.Item2.IdVersion == "2.1.0.0") return success;
+            richTextBox1.SelectionColor = Color.Orange;
+            richTextBox1.AppendText($"!!!WARNING!!! The version of omori that you have is {result.Item2.IdVersion} " +
+                                    $"while the latest one is 2.1.0.0, some things *might* break\n");
+            richTextBox1.SelectionColor = richTextBox1.ForeColor;
+
+            return success;
         }
 
         private void browseBtn_Click(object sender, EventArgs e)
@@ -160,6 +112,10 @@ namespace DEMORI
             {
                 _chowdrenDirValid = ValidateChowdren();
                 locationLbl.ForeColor = _chowdrenDirValid ? Color.Lime : Color.Red;
+            }
+            else
+            {
+                locationLbl.ForeColor = Color.Red;
             }
         }
 
@@ -226,24 +182,13 @@ namespace DEMORI
                 });
                 var decrypted = new byte[encryptedBytes.Length];
                 encryptedBytes.CopyTo(decrypted, 0);
-            
-                foreach (var file in Files)
-                {
-                    richTextBox1.Invoke((MethodInvoker) delegate {
-                        richTextBox1.AppendText($"Using {file}\n");
-                    });
-                    
-                    var fileData = File.ReadAllBytes(Path.Combine(_chowdrenDir, file));
-                    for (var i = 0; i < decrypted.Length; i++)
-                    {
-                        decrypted[i] ^= fileData[i % fileData.Length];
-                    }
-                }
+
+                Decryption.Decrypt(_chowdrenDir, decrypted);
                 
                 richTextBox1.Invoke((MethodInvoker) delegate {
                     richTextBox1.AppendText($"Validating... ");
                 });
-                if (Sha256(decrypted) != Checksum["Decrypted"])
+                if (Decryption.Sha256(decrypted) != Checksum["Decrypted"])
                 {
                     richTextBox1.Invoke((MethodInvoker) delegate {
                         richTextBox1.AppendText($"Fail!\n");
