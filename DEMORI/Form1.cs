@@ -18,13 +18,20 @@ namespace DEMORI
         private string _chowdrenDir;
         private string _targetDir;
         private bool _chowdrenDirValid;
-        private byte[] encryptedBytes;
         private bool decrypting;
+
+        private static Dictionary<string, byte[]> encryptedFiles = new Dictionary<string, byte[]>();
 
         private static readonly Dictionary<string, string> Checksum = new Dictionary<string, string>()
         {
-            {"Encrypted", "891F21421D9C66BCA158D6F2A758AEAC896066373F840D016032670DC0195D95"},
-            {"Decrypted", "31F1260026CF671DB729059E896D2E7D9C801D240CDF2FA13E2582930E086562"}
+            {"Assets.dat.demori", "D307A43461DCE3E649F3E91C004620A494C5AE2A9B602C86C6D393945F1A0A22"},
+            {"Assets.dat", "42A38DF3F6721EA688D9F00C13F749CEC76596EFA1772236EE9E3A5E7A35C13E"},
+            {"atoms.dat.demori", "E7D56C5332B7B049BD7A19B6114AFC87DD723F0A8C5850F84640BFEC7C272BF1"},
+            {"atoms.dat", "ACFD2489EFE323194EFF3C2A73AE88C0E3727C45DA9706A5454846C58AB86869"},
+            {"full.bin.demori", "B543D6FA1E5FE0AC5BE594F9F89ABD94BA27D509F53247606832D439B45A859D"},
+            {"full.bin", "F5221BE198DB421FE0F89F47961D6924868CE64873989A46BBB77D3A478A3B8C"},
+            {"Chowdren.exe.demori", "891F21421D9C66BCA158D6F2A758AEAC896066373F840D016032670DC0195D95"},
+            {"Chowdren.exe", "31F1260026CF671DB729059E896D2E7D9C801D240CDF2FA13E2582930E086562"}
         };
         
         private static readonly string[] Files = {
@@ -49,17 +56,20 @@ namespace DEMORI
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            if (!File.Exists("Chowdren.bin"))
+            foreach (var checksum in Checksum)
             {
-                MessageBox.Show("Failed to find Chowdren.bin", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                var file = checksum.Key;
+                if (!file.EndsWith(".demori")) continue;
+                if (File.Exists(file))
+                {
+                    encryptedFiles[file] = File.ReadAllBytes(file);
+                    if (Decryption.Sha256(encryptedFiles[file]) == checksum.Value) continue;
+                }
+
+                MessageBox.Show($"Checksum doesn't match for {file}", "Error", MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
                 Environment.Exit(-1);
             }
-
-            encryptedBytes = File.ReadAllBytes("Chowdren.bin");
-
-            if (Decryption.Sha256(encryptedBytes) == Checksum["Encrypted"]) return;
-            MessageBox.Show("Checksum doesn't match for Chowdren.bin", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            Environment.Exit(-1);
         }
 
         private static List<string> Search(string path)
@@ -177,29 +187,41 @@ namespace DEMORI
                     });
                 }
                 
-                richTextBox1.Invoke((MethodInvoker) delegate {
-                    richTextBox1.AppendText("Decrypting OMORI.bin\n");
-                });
-                var decrypted = new byte[encryptedBytes.Length];
-                encryptedBytes.CopyTo(decrypted, 0);
-
-                Decryption.Decrypt(_chowdrenDir, decrypted);
+                var decryptedFiles = new Dictionary<string, byte[]>();
+                foreach (var encryptedFile in encryptedFiles)
+                {
+                    var name = encryptedFile.Key.Substring(0, encryptedFile.Key.Length - ".demori".Length);
+                    var decrypted = new byte[encryptedFile.Value.Length];
+                    encryptedFile.Value.CopyTo(decrypted, 0);
+                    richTextBox1.Invoke((MethodInvoker) delegate {
+                        richTextBox1.AppendText($"Decrypting {name}\n");
+                    });
+                    Decryption.Decrypt(_chowdrenDir, decrypted);
+                    decryptedFiles[name] = decrypted;
+                }
                 
                 richTextBox1.Invoke((MethodInvoker) delegate {
                     richTextBox1.AppendText($"Validating... ");
                 });
-                if (Decryption.Sha256(decrypted) != Checksum["Decrypted"])
+                
+                foreach (var decryptedFile in decryptedFiles)
                 {
+                    if (Decryption.Sha256(decryptedFile.Value) == Checksum[decryptedFile.Key]) continue;
+                    
                     richTextBox1.Invoke((MethodInvoker) delegate {
-                        richTextBox1.AppendText($"Fail!\n");
+                        richTextBox1.AppendText($"Fail! {decryptedFile.Key} {Decryption.Sha256(decryptedFile.Value)} != " +
+                                                $"{Checksum[decryptedFile.Key]}\n");
                     });
                     return;
                 }
-                
+
                 richTextBox1.Invoke((MethodInvoker) delegate {
                     richTextBox1.AppendText($"Pass!\n");
                 });
-                File.WriteAllBytes(Path.Combine(_targetDir, "Chowdren.exe"), decrypted);
+                foreach (var decryptedFile in decryptedFiles)
+                {
+                    File.WriteAllBytes(Path.Combine(_targetDir, decryptedFile.Key), decryptedFile.Value);
+                }
 
                 var files = Search(_chowdrenDir);
                 var total = files.Count - Files.Length - 1;
