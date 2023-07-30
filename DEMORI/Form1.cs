@@ -148,7 +148,6 @@ namespace DEMORI
                 return;
             }
 
-            decrypting = true;
             if (_chowdrenDir.Length == 0)
             {
                 MessageBox.Show("You have not selected OMORI's directory", "Error",
@@ -169,7 +168,16 @@ namespace DEMORI
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            if (_targetDir == _chowdrenDir)
+            {
+                MessageBox.Show("The OMORI and target directory can't be the same", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
             
+            decrypting = true;
+
             new Thread(() =>
             {
                 richTextBox1.Invoke((MethodInvoker)delegate
